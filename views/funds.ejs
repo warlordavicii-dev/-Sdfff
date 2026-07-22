@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('partials/head') %>
+</head>
+<body>
+  <div class="app-shell">
+    <%- include('partials/sidebar', { active: 'funds' }) %>
+
+    <main class="main-content">
+    <div class="content-inner">
+
+    <%- include('partials/flash') %>
+
+    <div class="panel balance-panel">
+      <span class="balance-label">Available balance</span>
+      <div class="balance-amount">
+        KES <%= (wallet.balance_cents / 100).toLocaleString('en-KE', { minimumFractionDigits: 2 }) %>
+      </div>
+    </div>
+
+    <div class="funds-grid">
+      <div class="panel">
+        <h2>Deposit</h2>
+        <p class="desc">Add funds via M-Pesa STK push, or bank transfer / card through a secure checkout.</p>
+
+        <form method="POST" action="/funds/deposit" class="funds-form" id="deposit-form">
+          <div class="field">
+            <label for="deposit-channel">Channel</label>
+            <select id="deposit-channel" name="channel" required>
+              <option value="mpesa">M-Pesa</option>
+              <option value="bank">Bank / Card</option>
+            </select>
+          </div>
+
+          <div class="field" id="deposit-phone-field">
+            <label for="deposit-phone">Phone number</label>
+            <input type="text" id="deposit-phone" name="phone" placeholder="2547XXXXXXXX">
+          </div>
+
+          <div class="field">
+            <label for="deposit-amount">Amount (KES)</label>
+            <input type="number" id="deposit-amount" name="amount" min="<%= minAmount %>" max="<%= maxAmount %>" step="1" placeholder="e.g. 500" required>
+            <p class="hint">Min KES <%= minAmount %>, max KES <%= maxAmount.toLocaleString() %></p>
+          </div>
+
+          <button class="btn btn-primary" type="submit">Deposit</button>
+        </form>
+      </div>
+
+      <div class="panel">
+        <h2>Withdraw</h2>
+        <p class="desc">Send funds to your M-Pesa or a Kenyan bank account (via PesaLink).</p>
+
+        <form method="POST" action="/funds/withdraw" class="funds-form" id="withdraw-form">
+          <div class="field">
+            <label for="withdraw-channel">Channel</label>
+            <select id="withdraw-channel" name="channel" required>
+              <option value="mpesa">M-Pesa</option>
+              <option value="bank">Bank</option>
+            </select>
+          </div>
+
+          <div class="field" id="withdraw-bankcode-field" style="display:none;">
+            <label for="withdraw-bankcode">Bank code</label>
+            <input type="text" id="withdraw-bankcode" name="bankCode" placeholder="e.g. 11 (see IntaSend bank code list)">
+          </div>
+
+          <div class="field">
+            <label for="withdraw-account">Phone / account number</label>
+            <input type="text" id="withdraw-account" name="accountNumber" placeholder="2547XXXXXXXX or account no." required>
+          </div>
+
+          <div class="field">
+            <label for="withdraw-amount">Amount (KES)</label>
+            <input type="number" id="withdraw-amount" name="amount" min="<%= minAmount %>" max="<%= maxAmount %>" step="1" placeholder="e.g. 500" required>
+            <p class="hint">Available: KES <%= (wallet.balance_cents / 100).toLocaleString('en-KE', { minimumFractionDigits: 2 }) %></p>
+          </div>
+
+          <button class="btn btn-primary" type="submit">Withdraw</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Recent transactions</h2>
+      <% if (transactions.length === 0) { %>
+        <p class="desc">No transactions yet.</p>
+      <% } else { %>
+        <div class="tx-table-wrap">
+          <table class="tx-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Channel</th>
+                <th>Amount</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% transactions.forEach(function (tx) { %>
+                <tr>
+                  <td><%= new Date(tx.created_at).toLocaleString('en-KE', { dateStyle: 'medium', timeStyle: 'short' }) %></td>
+                  <td class="tx-type-<%= tx.type %>"><%= tx.type === 'deposit' ? 'Deposit' : 'Withdrawal' %></td>
+                  <td><%= tx.channel.toUpperCase() %></td>
+                  <td>KES <%= (tx.amount_cents / 100).toLocaleString('en-KE', { minimumFractionDigits: 2 }) %></td>
+                  <td><span class="tx-status tx-status-<%= tx.status %>"><%= tx.status %></span></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+
+    </div>
+    </main>
+  </div>
+
+  <script>
+    (function () {
+      const depositChannel = document.getElementById('deposit-channel');
+      const depositPhoneField = document.getElementById('deposit-phone-field');
+      const depositPhone = document.getElementById('deposit-phone');
+
+      function syncDepositPhone() {
+        const needsPhone = depositChannel.value !== 'bank';
+        depositPhoneField.style.display = needsPhone ? '' : 'none';
+        depositPhone.required = needsPhone;
+      }
+      depositChannel.addEventListener('change', syncDepositPhone);
+      syncDepositPhone();
+
+      const withdrawChannel = document.getElementById('withdraw-channel');
+      const withdrawBankField = document.getElementById('withdraw-bankcode-field');
+      const withdrawBankCode = document.getElementById('withdraw-bankcode');
+
+      function syncWithdrawBank() {
+        const isBank = withdrawChannel.value === 'bank';
+        withdrawBankField.style.display = isBank ? '' : 'none';
+        withdrawBankCode.required = isBank;
+      }
+      withdrawChannel.addEventListener('change', syncWithdrawBank);
+      syncWithdrawBank();
+    })();
+  </script>
+</body>
+</html>

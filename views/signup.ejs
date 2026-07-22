@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('partials/head') %>
+</head>
+<body>
+  <div class="wrap">
+    <div>
+      <%- include('partials/brand') %>
+      <div class="card">
+        <h1>Create your account</h1>
+        <p class="subtitle">We'll send a 6-digit code to your email before you can log in.</p>
+
+        <%- include('partials/flash') %>
+
+        <% if (referralCode) { %>
+          <p class="hint" style="margin-bottom:14px;">🎁 You were invited by a friend — they'll get <%= 10 %> coins once you verify your email.</p>
+        <% } %>
+
+        <form method="POST" action="/signup">
+          <input type="hidden" name="ref" value="<%= referralCode || '' %>">
+          <div class="field">
+            <label for="name">Full name</label>
+            <input type="text" id="name" name="name" placeholder="Jane Doe" required autofocus>
+          </div>
+          <div class="field">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" placeholder="janedoe" minlength="3" maxlength="32" pattern="[a-zA-Z0-9_]+" required autocomplete="off">
+            <p class="hint" id="username-status"></p>
+          </div>
+          <div class="field">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" placeholder="you@example.com" required>
+          </div>
+          <div class="field">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" placeholder="At least 8 characters" minlength="8" required>
+          </div>
+          <div class="field">
+            <label for="confirmPassword">Confirm password</label>
+            <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Repeat your password" minlength="8" required>
+          </div>
+          <div class="field checkbox-field">
+            <label class="checkbox-label">
+              <input type="checkbox" id="agreeTerms" name="agreeTerms" required>
+              <span>I agree to the <a href="/terms" target="_blank">Terms &amp; Conditions</a> and <a href="/privacy" target="_blank">Privacy Policy</a>.</span>
+            </label>
+          </div>
+          <button class="btn btn-primary" type="submit" id="signup-submit">Create account</button>
+        </form>
+
+        <% if (googleLoginEnabled || facebookLoginEnabled) { %>
+          <div class="oauth-divider"><span>or sign up with</span></div>
+          <div class="oauth-buttons">
+            <% if (googleLoginEnabled) { %>
+              <a class="btn btn-secondary btn-oauth" href="/auth/google<%= referralCode ? '?ref=' + referralCode : '' %>">
+                <i class="fa-brands fa-google" aria-hidden="true"></i> Google
+              </a>
+            <% } %>
+            <% if (facebookLoginEnabled) { %>
+              <a class="btn btn-secondary btn-oauth" href="/auth/facebook<%= referralCode ? '?ref=' + referralCode : '' %>">
+                <i class="fa-brands fa-facebook" aria-hidden="true"></i> Facebook
+              </a>
+            <% } %>
+          </div>
+        <% } %>
+
+        <hr class="divider">
+        <div class="foot-links">
+          Already have an account? <a href="/login">Log in</a>
+        </div>
+      </div>
+    </div>
+    <%- include('partials/footer') %>
+  </div>
+  <script>
+    (function () {
+      const input = document.getElementById('username');
+      const status = document.getElementById('username-status');
+      const submitBtn = document.getElementById('signup-submit');
+      let debounceTimer = null;
+      let currentlyValid = false;
+
+      function setStatus(text, className) {
+        status.textContent = text;
+        status.className = 'hint ' + (className || '');
+      }
+
+      input.addEventListener('input', function () {
+        const value = input.value.trim();
+        currentlyValid = false;
+
+        if (!value) {
+          setStatus('', '');
+          return;
+        }
+        if (!/^[a-zA-Z0-9_]{3,32}$/.test(value)) {
+          setStatus('3-32 characters: letters, numbers, or underscores.', 'status-error');
+          return;
+        }
+
+        setStatus('Checking availability…', 'status-checking');
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(function () {
+          fetch('/check-username?username=' + encodeURIComponent(value))
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+              if (input.value.trim() !== value) return; // stale response
+              if (data.available) {
+                currentlyValid = true;
+                setStatus('✓ Username is available', 'status-success');
+              } else {
+                setStatus(data.reason || 'That username is taken.', 'status-error');
+              }
+            })
+            .catch(function () {
+              setStatus('Could not check right now.', 'status-error');
+            });
+        }, 400);
+      });
+    })();
+  </script>
+</body>
+</html>

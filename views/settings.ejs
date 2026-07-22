@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('partials/head') %>
+</head>
+<body>
+  <div class="hacklink-bg" id="hacklink-bg"></div>
+  <div class="hacklink-pulse" id="hacklink-pulse"></div>
+
+  <div class="app-shell">
+    <%- include('partials/sidebar', { active: 'settings' }) %>
+
+    <main class="main-content">
+    <div class="content-inner">
+
+    <%- include('partials/flash') %>
+    <%- include('partials/back-button') %>
+
+    <div class="panel">
+      <h2>Welcome back, <%= user.name.split(' ')[0] %> 👋</h2>
+      <p class="desc">Here's a quick look at your account.</p>
+    </div>
+
+    <div class="panel balance-panel">
+      <span class="balance-label">Available balance</span>
+      <div class="balance-amount">
+        KES <%= ((typeof walletBalance !== 'undefined' ? walletBalance : 0) / 100).toLocaleString('en-KE', { minimumFractionDigits: 2 }) %>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Quick actions</h2>
+      <nav class="links-grid" aria-label="Quick actions">
+        <a class="link-btn" href="/funds"><i class="fa-solid fa-wallet" aria-hidden="true"></i> Deposit / Withdraw</a>
+        <a class="link-btn" href="/community"><i class="fa-solid fa-users" aria-hidden="true"></i> Community</a>
+        <a class="link-btn" href="/assistant"><i class="fa-solid fa-robot" aria-hidden="true"></i> Assistant</a>
+        <a class="link-btn" href="/dashboard"><i class="fa-solid fa-house" aria-hidden="true"></i> Dashboard</a>
+      </nav>
+    </div>
+
+    <div class="panel" id="coins-panel">
+      <h2>Coins</h2>
+      <div class="coins-balance-row">
+        <div>
+          <span class="balance-label">Coin balance</span>
+          <div class="coins-amount"><i class="fa-solid fa-coins" aria-hidden="true"></i> <%= user.coins %></div>
+        </div>
+        <form method="POST" action="/settings/coins/claim-daily">
+          <button class="btn btn-primary" type="submit" <%= canClaimDaily ? '' : 'disabled' %>>
+            <% if (canClaimDaily) { %>
+              Claim +<%= dailyCoinsAmount %> today
+            <% } else { %>
+              Claimed — come back <%= nextDailyClaimAt ? nextDailyClaimAt.toLocaleString() : 'tomorrow' %>
+            <% } %>
+          </button>
+        </form>
+      </div>
+
+      <h3 class="subhead">Invite friends, earn coins</h3>
+      <p class="desc">Share your link — you get <%= referralBonusAmount %> coins for every friend who signs up and verifies their email. <%= referralCount %> friend<%= referralCount === 1 ? '' : 's' %> joined so far.</p>
+      <div class="referral-link-row">
+        <input type="text" id="referral-link" value="<%= referralLink %>" readonly>
+        <button type="button" class="btn btn-secondary" id="copy-referral-btn">Copy</button>
+      </div>
+
+      <h3 class="subhead">Send coins</h3>
+      <form method="POST" action="/settings/coins/transfer" class="coins-transfer-form">
+        <div class="field">
+          <label for="recipientEmail">Recipient's email</label>
+          <input type="email" id="recipientEmail" name="recipientEmail" placeholder="friend@example.com" required>
+        </div>
+        <div class="field">
+          <label for="coinAmount">Amount</label>
+          <input type="number" id="coinAmount" name="amount" min="1" step="1" max="<%= user.coins %>" required>
+        </div>
+        <button class="btn btn-primary" type="submit">Send coins</button>
+      </form>
+
+      <% if (coinHistory && coinHistory.length > 0) { %>
+        <h3 class="subhead">Recent activity</h3>
+        <ul class="activity-list">
+          <% coinHistory.forEach(function (tx) { %>
+            <li class="activity-item">
+              <div class="activity-main">
+                <span class="activity-method">
+                  <%= tx.type === 'daily_claim' ? 'Daily claim' : tx.type === 'referral_bonus' ? 'Referral bonus' : tx.type === 'transfer_in' ? ('From @' + (tx.counterparty_username || 'user')) : ('To @' + (tx.counterparty_username || 'user')) %>
+                </span>
+                <span class="activity-time <%= (tx.type === 'transfer_out') ? 'coins-negative' : 'coins-positive' %>">
+                  <%= (tx.type === 'transfer_out') ? '-' : '+' %><%= tx.amount %>
+                </span>
+              </div>
+              <div class="activity-sub"><%= new Date(tx.created_at).toLocaleString() %></div>
+            </li>
+          <% }) %>
+        </ul>
+      <% } %>
+    </div>
+
+    <script>
+      (function () {
+        const btn = document.getElementById('copy-referral-btn');
+        const input = document.getElementById('referral-link');
+        if (!btn || !input) return;
+        btn.addEventListener('click', function () {
+          input.select();
+          navigator.clipboard.writeText(input.value).then(function () {
+            btn.textContent = 'Copied!';
+            setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+          }).catch(function () {});
+        });
+      })();
+    </script>
+
+    <div class="panel" id="appearance-panel">
+      <h2>Appearance</h2>
+      <p class="desc">Choose how your dashboard background looks.</p>
+      <div class="theme-toggle">
+        <button type="button" class="theme-option" data-theme="hacklink" id="theme-hacklink-btn">
+          <span class="theme-swatch swatch-hacklink"></span>
+          HackLink
+        </button>
+        <button type="button" class="theme-option" data-theme="classic" id="theme-classic-btn">
+          <span class="theme-swatch swatch-classic"></span>
+          Classic
+        </button>
+      </div>
+    </div>
+
+    <div class="panel" id="avatar-panel">
+      <h2>Profile photo</h2>
+      <div class="avatar-row">
+        <% if (user.avatar_url) { %>
+          <img src="<%= user.avatar_url %>" alt="Your profile photo" class="avatar-preview">
+        <% } else { %>
+          <div class="avatar-preview avatar-fallback"><%= user.name.trim().charAt(0).toUpperCase() %></div>
+        <% } %>
+        <div class="avatar-actions">
+          <form method="POST" action="/settings/avatar" enctype="multipart/form-data" class="avatar-upload-form">
+            <label class="btn btn-secondary avatar-file-btn">
+              Choose photo
+              <input type="file" name="avatar" accept="image/png,image/jpeg,image/webp" hidden onchange="this.form.requestSubmit()">
+            </label>
+          </form>
+          <% if (user.avatar_url) { %>
+            <form method="POST" action="/settings/avatar/remove">
+              <button class="btn btn-danger" type="submit">Remove</button>
+            </form>
+          <% } %>
+        </div>
+      </div>
+      <p class="hint">JPG, PNG, or WEBP. Max 2MB.</p>
+    </div>
+
+    <div class="panel" id="profile-panel">
+      <h2>Profile</h2>
+      <p class="desc">
+        Update your name and email.
+        <span class="badge <%= user.is_verified ? 'verified' : 'unverified' %>">
+          <%= user.is_verified ? '✓ verified' : '! unverified' %>
+        </span>
+      </p>
+      <form method="POST" action="/settings/profile">
+        <div class="field">
+          <label for="name">Full name</label>
+          <input type="text" id="name" name="name" value="<%= user.name %>" required>
+        </div>
+        <div class="field">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" value="<%= user.username %>" minlength="3" maxlength="32" pattern="[a-zA-Z0-9_]+" required autocomplete="off">
+          <p class="hint" id="username-status"></p>
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" value="<%= user.email %>" required>
+          <p class="hint">Changing your email will require re-verifying it, and you'll be logged out.</p>
+        </div>
+        <button class="btn btn-primary" type="submit">Save profile</button>
+      </form>
+    </div>
+
+    <script>
+      (function () {
+        const input = document.getElementById('username');
+        const status = document.getElementById('username-status');
+        const originalUsername = input.value.trim().toLowerCase();
+        let debounceTimer = null;
+
+        function setStatus(text, className) {
+          status.textContent = text;
+          status.className = 'hint ' + (className || '');
+        }
+
+        input.addEventListener('input', function () {
+          const value = input.value.trim();
+
+          if (!value || value.toLowerCase() === originalUsername) {
+            setStatus('', '');
+            return;
+          }
+          if (!/^[a-zA-Z0-9_]{3,32}$/.test(value)) {
+            setStatus('3-32 characters: letters, numbers, or underscores.', 'status-error');
+            return;
+          }
+
+          setStatus('Checking availability…', 'status-checking');
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(function () {
+            fetch('/check-username?username=' + encodeURIComponent(value))
+              .then(function (res) { return res.json(); })
+              .then(function (data) {
+                if (input.value.trim() !== value) return;
+                if (data.available) {
+                  setStatus('✓ Username is available', 'status-success');
+                } else {
+                  setStatus(data.reason || 'That username is taken.', 'status-error');
+                }
+              })
+              .catch(function () {
+                setStatus('Could not check right now.', 'status-error');
+              });
+          }, 400);
+        });
+      })();
+    </script>
+
+    <div class="panel">
+      <h2>Change password</h2>
+      <p class="desc">Choose a strong password you're not using elsewhere.</p>
+      <form method="POST" action="/settings/password">
+        <div class="field">
+          <label for="currentPassword">Current password</label>
+          <input type="password" id="currentPassword" name="currentPassword" required>
+        </div>
+        <div class="field">
+          <label for="newPassword">New password</label>
+          <input type="password" id="newPassword" name="newPassword" minlength="8" required>
+        </div>
+        <div class="field">
+          <label for="confirmPassword">Confirm new password</label>
+          <input type="password" id="confirmPassword" name="confirmPassword" minlength="8" required>
+        </div>
+        <button class="btn btn-primary" type="submit">Update password</button>
+      </form>
+    </div>
+
+    <div class="panel" id="twofa-panel">
+      <h2>Two-factor authentication</h2>
+      <p class="desc">
+        Add an extra step at login using an authenticator app.
+        <span class="badge <%= user.totp_enabled ? 'verified' : 'unverified' %>">
+          <%= user.totp_enabled ? '✓ enabled' : '! disabled' %>
+        </span>
+      </p>
+
+      <% if (user.totp_enabled) { %>
+        <p class="hint"><%= backupCodesRemaining %> unused backup code<%= backupCodesRemaining === 1 ? '' : 's' %> remaining.</p>
+        <div class="settings-btn-row">
+          <form method="POST" action="/settings/2fa/backup-codes/regenerate">
+            <button class="btn btn-secondary" type="submit">Regenerate backup codes</button>
+          </form>
+        </div>
+        <form method="POST" action="/settings/2fa/disable" class="twofa-disable-form">
+          <% if (user.password) { %>
+            <div class="field">
+              <label for="twofaCurrentPassword">Current password</label>
+              <input type="password" id="twofaCurrentPassword" name="currentPassword" placeholder="Confirm to disable" required>
+            </div>
+          <% } %>
+          <button class="btn btn-danger" type="submit">Disable two-factor authentication</button>
+        </form>
+      <% } else { %>
+        <a href="/settings/2fa/setup" class="btn btn-primary">Enable two-factor authentication</a>
+      <% } %>
+    </div>
+
+    <div class="panel" id="login-activity-panel">
+      <h2>Recent login activity</h2>
+      <p class="desc">The last few times someone signed in to your account.</p>
+
+      <% if (!loginActivity || loginActivity.length === 0) { %>
+        <p class="hint">No login activity recorded yet.</p>
+      <% } else { %>
+        <ul class="activity-list">
+          <% loginActivity.forEach(function (entry) { %>
+            <li class="activity-item">
+              <div class="activity-main">
+                <span class="activity-method">
+                  <i class="<%= entry.method === 'google' ? 'fa-brands fa-google' : entry.method === 'facebook' ? 'fa-brands fa-facebook' : 'fa-solid fa-key' %>" aria-hidden="true"></i>
+                  <%= entry.method === 'google' ? 'Google' : entry.method === 'facebook' ? 'Facebook' : 'Password' %> login
+                </span>
+                <span class="activity-time"><%= new Date(entry.created_at).toLocaleString() %></span>
+              </div>
+              <div class="activity-sub">
+                <%= entry.deviceLabel %><% if (entry.ip_address) { %> &middot; <%= entry.ip_address %><% } %>
+              </div>
+            </li>
+          <% }) %>
+        </ul>
+      <% } %>
+    </div>
+
+    <div class="panel" id="complaints-panel">
+      <h2>Complaints &amp; support</h2>
+      <p class="desc">Report a problem or send feedback. This goes straight to our support inbox.</p>
+      <form method="POST" action="/settings/complaint">
+        <div class="field">
+          <label for="complaintSubject">Subject</label>
+          <input type="text" id="complaintSubject" name="subject" placeholder="What's this about?" maxlength="190" required>
+        </div>
+        <div class="field">
+          <label for="complaintMessage">Details</label>
+          <textarea id="complaintMessage" name="message" rows="5" placeholder="Tell us what happened..." maxlength="4000" required></textarea>
+        </div>
+        <button class="btn btn-primary" type="submit">Send complaint</button>
+      </form>
+    </div>
+
+    <div class="panel panel-danger" id="danger-zone-panel">
+      <h2>Danger zone</h2>
+      <p class="desc">Deleting your account is permanent. Your wallet, transactions, community messages, and coins will all be removed and cannot be recovered.</p>
+      <form method="POST" action="/settings/delete-account" id="delete-account-form">
+        <% if (user.password) { %>
+          <div class="field">
+            <label for="deleteCurrentPassword">Current password</label>
+            <input type="password" id="deleteCurrentPassword" name="currentPassword" required>
+          </div>
+        <% } %>
+        <div class="field">
+          <label for="confirmDelete">Type <strong>DELETE</strong> to confirm</label>
+          <input type="text" id="confirmDelete" name="confirmDelete" placeholder="DELETE" autocomplete="off" required>
+        </div>
+        <button class="btn btn-danger" type="submit">Delete my account</button>
+      </form>
+    </div>
+
+    <script>
+      (function () {
+        const form = document.getElementById('delete-account-form');
+        if (!form) return;
+        form.addEventListener('submit', function (e) {
+          if (!confirm('This will permanently delete your account. Are you sure?')) {
+            e.preventDefault();
+          }
+        });
+      })();
+    </script>
+    </div>
+    </main>
+  </div>
+
+</body>
+</html>

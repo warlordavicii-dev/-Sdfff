@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('partials/head') %>
+</head>
+<body>
+  <div class="app-shell">
+    <%- include('partials/sidebar', { active: 'dashboard' }) %>
+
+    <main class="main-content">
+      <div class="content-inner">
+        <%- include('partials/flash') %>
+        <%- include('partials/back-button') %>
+
+        <div class="panel">
+          <h2>Welcome to VaultGate</h2>
+          <p class="desc">
+            VaultGate is your all-in-one account hub. Deposit and withdraw funds from
+            <a href="/funds">Funds</a>, chat with other members in the
+            <a href="/community">Community</a>, or ask the
+            <a href="/assistant">Assistant</a> about how anything works — your recent
+            activity is always right here on Home.
+          </p>
+        </div>
+
+        <div class="panel">
+          <h2>Recent transactions</h2>
+          <% if (transactions.length === 0) { %>
+            <p class="desc">No transactions yet. <a href="/funds">Make your first deposit</a>.</p>
+          <% } else { %>
+            <div class="tx-filters" id="tx-filters" role="group" aria-label="Filter transactions">
+              <button type="button" class="tx-filter-btn active" data-filter="all">All</button>
+              <button type="button" class="tx-filter-btn" data-filter="deposit">Deposits</button>
+              <button type="button" class="tx-filter-btn" data-filter="withdrawal">Withdrawals</button>
+            </div>
+            <div class="tx-table-wrap">
+              <table class="tx-table" id="tx-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Channel</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% transactions.forEach(function (tx) { %>
+                    <tr data-type="<%= tx.type %>">
+                      <td><%= new Date(tx.created_at).toLocaleString('en-KE', { dateStyle: 'medium', timeStyle: 'short' }) %></td>
+                      <td class="tx-type-<%= tx.type %>"><%= tx.type === 'deposit' ? 'Deposit' : 'Withdrawal' %></td>
+                      <td><%= tx.channel.toUpperCase() %></td>
+                      <td>KES <%= (tx.amount_cents / 100).toLocaleString('en-KE', { minimumFractionDigits: 2 }) %></td>
+                      <td><span class="tx-status tx-status-<%= tx.status %>"><%= tx.status %></span></td>
+                    </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+              <p class="desc" id="tx-empty-filtered" style="display:none;margin-top:14px;">No transactions match this filter.</p>
+            </div>
+            <p class="desc" style="margin-top:14px;"><a href="/funds">View all transactions →</a></p>
+          <% } %>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    (function () {
+      const filterBtns = document.querySelectorAll('#tx-filters .tx-filter-btn');
+      const rows = document.querySelectorAll('#tx-table tbody tr');
+      const emptyMsg = document.getElementById('tx-empty-filtered');
+      if (!filterBtns.length) return;
+
+      filterBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          filterBtns.forEach(function (b) { b.classList.remove('active'); });
+          btn.classList.add('active');
+
+          const filter = btn.dataset.filter;
+          let visibleCount = 0;
+
+          rows.forEach(function (row) {
+            const show = filter === 'all' || row.dataset.type === filter;
+            row.style.display = show ? '' : 'none';
+            if (show) visibleCount++;
+          });
+
+          emptyMsg.style.display = visibleCount === 0 ? 'block' : 'none';
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

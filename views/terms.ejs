@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('partials/head') %>
+</head>
+<body>
+  <div class="static-wrap">
+    <div class="static-header">
+      <%- include('partials/brand') %>
+      <a href="javascript:history.back()" class="btn-back">&larr; Back</a>
+    </div>
+
+    <div class="static-card">
+      <h1>Terms &amp; Conditions</h1>
+      <p class="static-updated">Last updated: <%= new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) %></p>
+
+      <p>These Terms &amp; Conditions ("Terms") govern your use of <%= appName %> (the "Service"). By creating an account or using the Service, you agree to be bound by these Terms.</p>
+
+      <h2>1. Your account</h2>
+      <p>You're responsible for keeping your login credentials secure and for all activity under your account. Notify us immediately if you suspect unauthorized access.</p>
+
+      <h2>2. Acceptable use</h2>
+      <p>You agree not to misuse the Service — including attempting to gain unauthorized access to other accounts, interfering with the Service's operation, or using it for unlawful purposes.</p>
+
+      <h2>3. Account termination</h2>
+      <p>We may suspend or terminate accounts that violate these Terms. You may stop using the Service and request account deletion at any time.</p>
+
+      <h2>4. Changes to the Service</h2>
+      <p>We may modify or discontinue features of the Service at any time. We'll make reasonable efforts to notify you of material changes.</p>
+
+      <h2>5. Disclaimer of warranties</h2>
+      <p>The Service is provided "as is" without warranties of any kind, express or implied, to the fullest extent permitted by law.</p>
+
+      <h2>6. Limitation of liability</h2>
+      <p><%= appName %> shall not be liable for indirect, incidental, or consequential damages arising from your use of the Service.</p>
+
+      <h2>7. Governing law</h2>
+      <p>These Terms are governed by the laws of [your jurisdiction], without regard to conflict-of-law principles.</p>
+
+      <h2>8. Contact</h2>
+      <p>Questions about these Terms? Reach out through the contact links on your dashboard.</p>
+
+      <p class="static-disclaimer">
+        This is a general starter template and not legal advice. Have it reviewed by a
+        qualified professional before relying on it for a live product, and update the
+        placeholders (jurisdiction, contact details) before publishing.
+      </p>
+    </div>
+
+    <%- include('partials/footer') %>
+  </div>
+</body>
+</html>

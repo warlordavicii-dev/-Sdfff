@@ -1,0 +1,87 @@
+<button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="sidebar">
+  <i class="fa-solid fa-bars"></i>
+</button>
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <%- include('brand') %>
+  </div>
+
+  <div class="sidebar-profile">
+    <div class="sidebar-avatar"><%= (user.name || user.username || '?').trim().charAt(0).toUpperCase() %></div>
+    <div class="sidebar-profile-info">
+      <span class="sidebar-name"><%= user.name %></span>
+      <span class="sidebar-username">@<%= user.username %></span>
+      <span class="sidebar-balance">
+        KES <%= (( typeof walletBalance !== 'undefined' && walletBalance ? walletBalance : 0) / 100).toLocaleString('en-KE', { minimumFractionDigits: 2 }) %>
+      </span>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav" aria-label="Main">
+    <a href="/dashboard" class="<%= (typeof active !== 'undefined' && active === 'dashboard') ? 'active' : '' %>">
+      <i class="fa-solid fa-house"></i><span>Home</span>
+    </a>
+    <a href="/funds" class="<%= (typeof active !== 'undefined' && active === 'funds') ? 'active' : '' %>">
+      <i class="fa-solid fa-wallet"></i><span>Funds</span>
+    </a>
+    <a href="/community" class="<%= (typeof active !== 'undefined' && active === 'community') ? 'active' : '' %>">
+      <i class="fa-solid fa-users"></i><span>Community</span>
+    </a>
+    <a href="/assistant" class="<%= (typeof active !== 'undefined' && active === 'assistant') ? 'active' : '' %>">
+      <i class="fa-solid fa-robot"></i><span>Assistant</span>
+    </a>
+  </nav>
+
+  <div class="sidebar-spacer"></div>
+
+  <div class="sidebar-section-label">Account</div>
+  <nav class="sidebar-nav" aria-label="Account">
+    <a href="/settings" class="<%= (typeof active !== 'undefined' && active === 'settings') ? 'active' : '' %>">
+      <i class="fa-solid fa-gear"></i><span>Settings</span>
+    </a>
+    <a href="/about" class="<%= (typeof active !== 'undefined' && active === 'about') ? 'active' : '' %>">
+      <i class="fa-solid fa-circle-info"></i><span>About</span>
+    </a>
+    <form class="sidebar-logout-form" method="POST" action="/logout">
+      <button type="submit"><i class="fa-solid fa-right-from-bracket"></i><span>Logout</span></button>
+    </form>
+  </nav>
+</aside>
+
+<script>
+  (function () {
+    var toggle = document.getElementById('sidebar-toggle');
+    var sidebar = document.getElementById('sidebar');
+    var overlay = document.getElementById('sidebar-overlay');
+    if (!toggle || !sidebar || !overlay) return;
+
+    function closeSidebar() {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('open');
+      toggle.setAttribute('aria-expanded', 'false');
+    }
+
+    function openSidebar() {
+      sidebar.classList.add('open');
+      overlay.classList.add('open');
+      toggle.setAttribute('aria-expanded', 'true');
+    }
+
+    toggle.addEventListener('click', function () {
+      if (sidebar.classList.contains('open')) closeSidebar();
+      else openSidebar();
+    });
+
+    overlay.addEventListener('click', closeSidebar);
+
+    sidebar.querySelectorAll('a').forEach(function (link) {
+      link.addEventListener('click', closeSidebar);
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeSidebar();
+    });
+  })();
+</script>

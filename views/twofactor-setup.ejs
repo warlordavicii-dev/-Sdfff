@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('partials/head') %>
+</head>
+<body>
+  <div class="hacklink-bg" id="hacklink-bg"></div>
+  <div class="hacklink-pulse" id="hacklink-pulse"></div>
+
+  <div class="app-shell">
+    <%- include('partials/sidebar', { active: 'settings' }) %>
+
+    <main class="main-content">
+    <div class="content-inner">
+
+    <%- include('partials/flash') %>
+    <%- include('partials/back-button') %>
+
+    <div class="panel">
+      <h2>Set up two-factor authentication</h2>
+      <p class="desc">Scan this QR code with an authenticator app (Google Authenticator, Authy, 1Password, etc.), then enter the 6-digit code it shows you.</p>
+
+      <div class="twofa-qr-wrap">
+        <img src="<%= qrDataUrl %>" alt="Two-factor authentication QR code" class="twofa-qr">
+      </div>
+
+      <p class="desc">Can't scan it? Enter this key manually instead:</p>
+      <code class="twofa-secret"><%= secret %></code>
+
+      <form method="POST" action="/settings/2fa/enable" class="twofa-confirm-form">
+        <div class="field">
+          <label for="code">6-digit code</label>
+          <input type="text" id="code" name="code" placeholder="123456" inputmode="numeric" minlength="6" maxlength="6" autocomplete="one-time-code" required autofocus>
+        </div>
+        <button class="btn btn-primary" type="submit">Confirm and enable 2FA</button>
+      </form>
+    </div>
+
+    </div>
+    </main>
+  </div>
+</body>
+</html>

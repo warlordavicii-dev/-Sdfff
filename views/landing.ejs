@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('partials/head') %>
+</head>
+<body>
+  <div class="landing-wrap">
+    <header class="landing-header">
+      <%- include('partials/brand') %>
+      <nav class="landing-nav">
+        <a href="/login">Log in</a>
+      </nav>
+    </header>
+
+    <main class="hero">
+      <span class="eyebrow">Secure account management</span>
+      <h1>Your account, guarded and organized.</h1>
+      <p class="hero-sub">
+        VaultGate gives you one clean, secure place to manage your profile, password,
+        and account preferences — with email verification built in from the start.
+      </p>
+      <div class="hero-actions">
+        <a href="/signup" class="btn btn-primary hero-cta">Get started</a>
+        <a href="/login" class="btn btn-secondary hero-cta">Log in</a>
+      </div>
+      <p class="hero-legal">
+        By continuing you agree to our
+        <a href="/terms">Terms &amp; Conditions</a> and <a href="/privacy">Privacy Policy</a>.
+      </p>
+    </main>
+
+    <section class="feature-grid">
+      <div class="feature-card">
+        <span class="feature-icon">✓</span>
+        <h3>Email verification</h3>
+        <p>Every account is verified with a one-time code before it's active.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">⚙</span>
+        <h3>Full profile control</h3>
+        <p>Update your name, username, and email anytime from your dashboard.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">⚿</span>
+        <h3>Password security</h3>
+        <p>Change your password whenever you need to, backed by secure hashing.</p>
+      </div>
+    </section>
+
+    <%- include('partials/footer') %>
+  </div>
+</body>
+</html>

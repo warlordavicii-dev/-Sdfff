@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('partials/head') %>
+</head>
+<body>
+  <div class="app-shell">
+    <%- include('partials/sidebar', { active: 'community' }) %>
+
+    <main class="main-content">
+    <div class="content-inner">
+
+    <%- include('partials/flash') %>
+    <%- include('partials/back-button') %>
+
+    <div class="panel chat-panel">
+      <h2>Community</h2>
+      <p class="desc">Chat with other members. Be kind — everyone here sees your username.</p>
+
+      <div class="chat-messages" id="chat-messages" data-current-username="<%= user.username %>">
+        <% if (messages.length === 0) { %>
+          <p class="desc" id="chat-empty">No messages yet. Say hello!</p>
+        <% } %>
+        <% messages.forEach(function (m) { %>
+          <div class="chat-msg <%= m.username === user.username ? 'chat-msg-own' : '' %>" data-id="<%= m.id %>">
+            <div class="chat-msg-head">
+              <span class="chat-msg-user"><%= m.username %></span>
+              <span class="chat-msg-time" data-iso="<%= new Date(m.created_at).toISOString() %>"><%= new Date(m.created_at).toLocaleString('en-KE', { dateStyle: 'medium', timeStyle: 'short' }) %></span>
+            </div>
+            <% if (m.reply_username) { %>
+              <div class="chat-msg-reply">
+                <span class="chat-msg-reply-user">@<%= m.reply_username %></span>
+                <span class="chat-msg-reply-body"><%= m.reply_body.length > 80 ? m.reply_body.slice(0, 80) + '…' : m.reply_body %></span>
+              </div>
+            <% } %>
+            <div class="chat-msg-body"><%= m.body %></div>
+            <button type="button" class="chat-reply-btn" data-id="<%= m.id %>" data-username="<%= m.username %>" data-body="<%= m.body %>">Reply</button>
+          </div>
+        <% }); %>
+      </div>
+
+      <div class="chat-reply-preview" id="chat-reply-preview" style="display:none;">
+        <span>Replying to <strong id="chat-reply-username"></strong>: <span id="chat-reply-snippet"></span></span>
+        <button type="button" id="chat-reply-cancel" aria-label="Cancel reply">&times;</button>
+      </div>
+
+      <form id="chat-form" class="chat-form" autocomplete="off">
+        <input type="hidden" id="chat-reply-to" name="replyToId" value="">
+        <div class="chat-input-row">
+          <div class="emoji-wrap">
+            <button type="button" id="emoji-toggle" class="btn btn-secondary emoji-toggle-btn" aria-label="Insert emoji">😊</button>
+            <div class="emoji-panel" id="emoji-panel" style="display:none;"></div>
+          </div>
+          <textarea id="chat-input" name="body" maxlength="<%= maxLength %>" rows="1" placeholder="Message the community…" required></textarea>
+          <button type="submit" class="btn btn-primary chat-send-btn">Send</button>
+        </div>
+        <p class="hint" id="chat-error" style="display:none;"></p>
+      </form>
+    </div>
+
+    </div>
+    </main>
+  </div>
+
+  <script>
+    (function () {
+      const EMOJIS = [
+        '😀','😂','😅','😊','🙂','😉','😍','😘','😜','🤔',
+        '😎','😢','😭','😡','🥳','🎉','👍','👎','👏','🙏',
+        '💪','🔥','💯','❤️','🧡','💛','💚','💙','💜','🖤',
+        '✨','⭐','🚀','💰','💸','📈','📉','✅','❌','⚠️',
+        '🤝','👀','😴','🤷','🙌','🎂','☕','⚡'
+      ];
+
+      const messagesEl = document.getElementById('chat-messages');
+      const emptyEl = document.getElementById('chat-empty');
+      const currentUsername = messagesEl.dataset.currentUsername;
+      const form = document.getElementById('chat-form');
+      const input = document.getElementById('chat-input');
+      const errorEl = document.getElementById('chat-error');
+      const replyToInput = document.getElementById('chat-reply-to');
+      const replyPreview = document.getElementById('chat-reply-preview');
+      const replyUsernameEl = document.getElementById('chat-reply-username');
+      const replySnippetEl = document.getElementById('chat-reply-snippet');
+      const replyCancelBtn = document.getElementById('chat-reply-cancel');
+      const emojiToggle = document.getElementById('emoji-toggle');
+      const emojiPanel = document.getElementById('emoji-panel');
+
+      let lastId = 0;
+      messagesEl.querySelectorAll('.chat-msg').forEach((el) => {
+        const id = parseInt(el.dataset.id, 10);
+        if (id > lastId) lastId = id;
+      });
+
+      function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str == null ? '' : String(str);
+        return div.innerHTML;
+      }
+
+      function formatTime(iso) {
+        try {
+          return new Date(iso).toLocaleString('en-KE', { dateStyle: 'medium', timeStyle: 'short' });
+        } catch (e) {
+          return '';
+        }
+      }
+
+      function isNearBottom() {
+        return messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 120;
+      }
+
+      function renderMessage(m, isOwn) {
+        if (emptyEl) emptyEl.remove();
+
+        const wrap = document.createElement('div');
+        wrap.className = 'chat-msg' + (isOwn ? ' chat-msg-own' : '');
+        wrap.dataset.id = m.id;
+
+        let replyHtml = '';
+        if (m.replyUsername) {
+          const snippet = m.replyBody && m.replyBody.length > 80 ? m.replyBody.slice(0, 80) + '…' : (m.replyBody || '');
+          replyHtml = `
+            <div class="chat-msg-reply">
+              <span class="chat-msg-reply-user">@${escapeHtml(m.replyUsername)}</span>
+              <span class="chat-msg-reply-body">${escapeHtml(snippet)}</span>
+            </div>`;
+        }
+
+        wrap.innerHTML = `
+          <div class="chat-msg-head">
+            <span class="chat-msg-user">${escapeHtml(m.username)}</span>
+            <span class="chat-msg-time">${escapeHtml(formatTime(m.createdAt))}</span>
+          </div>
+          ${replyHtml}
+          <div class="chat-msg-body">${escapeHtml(m.body)}</div>
+          <button type="button" class="chat-reply-btn" data-id="${m.id}" data-username="${escapeHtml(m.username)}" data-body="${escapeHtml(m.body)}">Reply</button>
+        `;
+
+        messagesEl.appendChild(wrap);
+        if (m.id > lastId) lastId = m.id;
+      }
+
+      // ---- Reply handling (event delegation, works for SSR + AJAX messages) ----
+      messagesEl.addEventListener('click', function (e) {
+        const btn = e.target.closest('.chat-reply-btn');
+        if (!btn) return;
+        replyToInput.value = btn.dataset.id;
+        replyUsernameEl.textContent = '@' + btn.dataset.username;
+        const body = btn.dataset.body || '';
+        replySnippetEl.textContent = body.length > 60 ? body.slice(0, 60) + '…' : body;
+        replyPreview.style.display = 'flex';
+        input.focus();
+      });
+
+      replyCancelBtn.addEventListener('click', function () {
+        replyToInput.value = '';
+        replyPreview.style.display = 'none';
+      });
+
+      // ---- Emoji picker ----
+      EMOJIS.forEach(function (emoji) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'emoji-option';
+        btn.textContent = emoji;
+        btn.addEventListener('click', function () {
+          const start = input.selectionStart || input.value.length;
+          const end = input.selectionEnd || input.value.length;
+          input.value = input.value.slice(0, start) + emoji + input.value.slice(end);
+          input.focus();
+          input.selectionStart = input.selectionEnd = start + emoji.length;
+          emojiPanel.style.display = 'none';
+        });
+        emojiPanel.appendChild(btn);
+      });
+
+      emojiToggle.addEventListener('click', function () {
+        emojiPanel.style.display = emojiPanel.style.display === 'none' ? 'grid' : 'none';
+      });
+
+      document.addEventListener('click', function (e) {
+        if (!emojiPanel.contains(e.target) && e.target !== emojiToggle) {
+          emojiPanel.style.display = 'none';
+        }
+      });
+
+      // ---- Send message ----
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const body = input.value.trim();
+        errorEl.style.display = 'none';
+        if (!body) return;
+
+        const payload = { body, replyToId: replyToInput.value || null };
+
+        fetch('/community/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+          .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+          .then(({ ok, data }) => {
+            if (!ok) {
+              errorEl.textContent = data.error || 'Could not send your message.';
+              errorEl.style.display = 'block';
+              return;
+            }
+            renderMessage(data.message, true);
+            input.value = '';
+            input.style.height = 'auto';
+            replyToInput.value = '';
+            replyPreview.style.display = 'none';
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+          })
+          .catch(() => {
+            errorEl.textContent = 'Network error — please try again.';
+            errorEl.style.display = 'block';
+          });
+      });
+
+      // Auto-grow the textarea a little as the person types.
+      input.addEventListener('input', function () {
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+      });
+
+      // Send on Enter, newline on Shift+Enter.
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          form.requestSubmit();
+        }
+      });
+
+      // ---- Poll for new messages from other users ----
+      function poll() {
+        fetch('/community/messages/poll?after=' + lastId)
+          .then((res) => res.json())
+          .then((data) => {
+            if (!data.messages || data.messages.length === 0) return;
+            const shouldScroll = isNearBottom();
+            data.messages.forEach((m) => {
+              if (m.username === currentUsername) {
+                // We already rendered our own message optimistically on send.
+                if (m.id > lastId) lastId = m.id;
+                return;
+              }
+              renderMessage(m, false);
+            });
+            if (shouldScroll) messagesEl.scrollTop = messagesEl.scrollHeight;
+          })
+          .catch(() => {
+            /* silent — will just retry on the next tick */
+          });
+      }
+
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+      setInterval(poll, 4000);
+    })();
+  </script>
+</body>
+</html>

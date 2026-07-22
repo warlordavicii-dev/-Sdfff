@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('partials/head') %>
+</head>
+<body>
+  <div class="wrap">
+    <div>
+      <%- include('partials/brand') %>
+      <div class="card">
+        <h1>Check your email</h1>
+        <p class="subtitle">Enter the 6-digit code we sent to <strong><%= email || 'your email' %></strong>. It expires in 10 minutes.</p>
+
+        <%- include('partials/flash') %>
+
+        <form method="POST" action="/verify-email">
+          <input type="hidden" name="email" value="<%= email %>">
+          <div class="field">
+            <label for="code">Verification code</label>
+            <input
+              type="text"
+              id="code"
+              name="code"
+              class="otp-input"
+              inputmode="numeric"
+              pattern="[0-9]{6}"
+              maxlength="6"
+              placeholder="000000"
+              autocomplete="one-time-code"
+              required
+              autofocus
+            >
+          </div>
+          <button class="btn btn-primary" type="submit">Verify email</button>
+        </form>
+
+        <form method="POST" action="/resend-verification">
+          <input type="hidden" name="email" value="<%= email %>">
+          <div class="foot-links" style="margin-top:18px;">
+            Didn't get a code? <button type="submit" class="link-btn">Resend code</button>
+          </div>
+        </form>
+
+        <hr class="divider">
+        <div class="foot-links">
+          <a href="/login">Back to log in</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

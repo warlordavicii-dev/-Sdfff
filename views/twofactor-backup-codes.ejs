@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('partials/head') %>
+</head>
+<body>
+  <div class="hacklink-bg" id="hacklink-bg"></div>
+  <div class="hacklink-pulse" id="hacklink-pulse"></div>
+
+  <div class="app-shell">
+    <%- include('partials/sidebar', { active: 'settings' }) %>
+
+    <main class="main-content">
+    <div class="content-inner">
+
+    <%- include('partials/flash') %>
+
+    <div class="panel">
+      <h2>Save your backup codes</h2>
+      <p class="desc">
+        Two-factor authentication is now on. Store these codes somewhere safe — each one can be
+        used <strong>once</strong> to log in if you lose access to your authenticator app.
+        They won't be shown again.
+      </p>
+
+      <div class="backup-codes-grid">
+        <% backupCodes.forEach(function (code) { %>
+          <code class="backup-code"><%= code %></code>
+        <% }) %>
+      </div>
+
+      <a href="/settings" class="btn btn-primary">I've saved these codes</a>
+    </div>
+
+    </div>
+    </main>
+  </div>
+</body>
+</html>
